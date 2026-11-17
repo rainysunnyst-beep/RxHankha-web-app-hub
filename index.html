@@ -140,6 +140,7 @@
     </div>
 
     <script>
+        // กำหนดรายการแอปเริ่มต้นตรงนี้ (สามารถเพิ่มแอปของคุณต่อในนี้ได้เลย)
         const defaultApps = [
             {
                 name: "ระบบจัดตารางเวร",
@@ -153,7 +154,15 @@
         function loadApps() {
             try {
                 const saved = localStorage.getItem('my_web_apps');
-                return saved ? JSON.parse(saved) : defaultApps;
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // ถ้าในเครื่องมีข้อมูลอยู่แล้วและเป็น Array ที่มีข้อมูล ให้ใช้ค่านั้น
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+                // ถ้าไม่มี หรือข้อมูลว่างเปล่า ให้คืนค่า defaultApps ทันที
+                return defaultApps;
             } catch (e) {
                 return defaultApps;
             }
@@ -214,26 +223,34 @@
         }
 
         function renderApps() {
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const searchInput = document.getElementById('searchInput');
+            const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
             const grid = document.getElementById('appGrid');
             const emptyState = document.getElementById('emptyState');
+
+            if (!grid) return;
 
             const filtered = apps.map((app, index) => ({ ...app, originalIndex: index }))
                 .filter(app => {
                     const matchCategory = currentCategory === 'ทั้งหมด' || app.category === currentCategory;
-                    const matchSearch = app.name.toLowerCase().includes(searchQuery) || app.desc.toLowerCase().includes(searchQuery);
+                    const matchSearch = (app.name && app.name.toLowerCase().includes(searchQuery)) || 
+                                        (app.desc && app.desc.toLowerCase().includes(searchQuery));
                     return matchCategory && matchSearch;
                 });
 
             grid.innerHTML = '';
 
             if (filtered.length === 0) {
-                emptyState.classList.remove('hidden');
-                emptyState.classList.add('flex');
+                if (emptyState) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.classList.add('flex');
+                }
                 return;
             } else {
-                emptyState.classList.remove('flex');
-                emptyState.classList.add('hidden');
+                if (emptyState) {
+                    emptyState.classList.remove('flex');
+                    emptyState.classList.add('hidden');
+                }
             }
 
             filtered.forEach(app => {
@@ -282,6 +299,7 @@
         function updateCategoryDatalist() {
             const categories = [...new Set(apps.map(a => a.category))];
             const datalist = document.getElementById('categoryList');
+            if (!datalist) return;
             datalist.innerHTML = '';
             categories.forEach(cat => {
                 const option = document.createElement('option');
@@ -337,7 +355,7 @@
 
         function openModal(index = null) {
             const modal = document.getElementById('appModal');
-            modal.classList.remove('hidden');
+            if (modal) modal.classList.remove('hidden');
 
             if (index !== null) {
                 document.getElementById('modalTitle').textContent = 'แก้ไขลิงก์ Web App';
@@ -356,7 +374,8 @@
         }
 
         function closeModal() {
-            document.getElementById('appModal').classList.add('hidden');
+            const modal = document.getElementById('appModal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function saveApp(event) {
@@ -396,7 +415,12 @@
             }
         }
 
-        render();
+        // รันการแสดงผลทันทีที่โหลดหน้าเว็บ
+        document.addEventListener('DOMContentLoaded', render);
+        // เผื่อกรณี DOM โหลดเสร็จก่อน
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            render();
+        }
     </script>
 </body>
 </html>
